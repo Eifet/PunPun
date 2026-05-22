@@ -1,0 +1,11 @@
+## Interface: 120005
+## Title: PunPun
+## Notes: A list of punny jokes to brighten your day!
+## Author: Zalaha the Pun-tastic
+## Version: 1.0.0
+## SavedVariables: PunPunDB
+
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\lib.xml
+
+PunPun.lua
