@@ -8,6 +8,7 @@ local jokeLibrary = {
     "Getting the ability to fly would be so uplifting. Getting the ability to fly would be so uplifting. Getting the ability to fly would be so uplifting. Getting the ability to fly would be so uplifting. Getting the ability to fly would be so uplifting.",
     "Getting the ability to fly would be so uplifting.",
 }
+local currentChannel = "SAY"
 
 ------------------------------------------------
 local jokeWindow = CreateFrame("Frame", "PunPunMainWindow", UIParent, "BackdropTemplate")
@@ -35,6 +36,43 @@ local titleText = jokeWindow:CreateFontString(nil, "OVERLAY", "GameFontNormalLar
 titleText:SetPoint("TOP", jokeWindow, "TOP", 0, -15)
 titleText:SetText("Zalaha's Pun-tastic jokes")
 
+local dropdown = CreateFrame("DropdownButton", "PunPunChannelDropdown", jokeWindow, "UIDropDownMenuTemplate")
+dropdown:SetPoint("TOPRIGHT", jokeWindow, "TOPRIGHT", -20, -15)
+dropdown:SetSize(120, 25)
+--dropdown:SetDefaultText("Say")
+
+-- 2. Define the Menu Initialization function
+local function InitializeDropdown(self, level)
+    -- We use a single reusable table to pass details to the button generator
+    local info = UIDropDownMenu_CreateInfo()
+
+    -- Option 1: Say
+    info.text = "Say"
+    info.value = "SAY"
+    info.func = function(button)
+        -- 'button.value' contains "SAY"
+        currentChannel = button.value
+        -- Set the text showing on the closed dropdown box
+        UIDropDownMenu_SetText(dropdown, button:GetText())
+    end
+    UIDropDownMenu_AddButton(info)
+
+    -- Option 2: Party
+    info.text = "Party"
+    info.value = "PARTY"
+    info.func = function(button)
+        currentChannel = button.value
+        UIDropDownMenu_SetText(dropdown, button:GetText())
+    end
+    UIDropDownMenu_AddButton(info)
+end
+UIDropDownMenu_Initialize(dropdown, InitializeDropdown)
+UIDropDownMenu_SetText(dropdown, "Say")
+
+-- Set the initial text displayed on the button when the addon loads
+--dropdown:SetSelectionText(function() return "Say" end)
+
+
 local prevRow = nil
 for i = 1, #jokeLibrary do
     local row = CreateFrame("Button", nil, jokeWindow, "BackdropTemplate")
@@ -53,7 +91,7 @@ for i = 1, #jokeLibrary do
     row:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.5) 
     
     row:SetScript("OnClick", function(self, button)
-        SendChatMessage(self.joke, "SAY")
+        SendChatMessage(self.joke, currentChannel)
     end)
     
     local fontString = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
