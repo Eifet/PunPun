@@ -12,36 +12,28 @@ local jokeLibrary = {
     "Why don’t priests ever get invited to a fancy dinner? Because they can’t use plate.",
     "Did you know a lot of players play as Tauren paladins? Holy cow!",
     "Where do Ogres buy their clothes? From the Dire Mall",
-    "Yo Mama's so fat, chain lightning hits her three times.",
-    "Yo mama so fat, she hit exalted with McDonalds.",
-    "Yo mama so fat, when a rogue shadowsteps her, he gets a loading screen.",
-    "Yo mama so fat, when a rogue shadowsteps her, he gets a loading screen.",
-    "Yo mama so fat, you need a full raid of warlocks to summon her.",
     "Why don't warriors enchant their weapons with +intellect? Because they don't want their weapons to be smarter than they are.",
     "What’s the abbreviation for Death Knight? Decay.",
 }
 
 local currentChannelName = "Say"
-local currentChannel = "SAY"
+local currentChannelCode = "/say "
 
 local channelsConfig = {
-    { name = "Say", code = "SAY" },
-    { name = "Target", code = "WHISPER" },
-    { name = "Yell", code = "YELL" },
-    { name = "Emote", code = "EMOTE" },
-    { name = "Party", code = "PARTY" },
-    { name = "Instance", code = "INSTANCE_CHAT" },
-    { name = "Raid", code = "RAID" },
-    { name = "Raid Warning", code = "RAID_WARNING" },
-    { name = "Guild", code = "GUILD" },
-    { name = "Officer", code = "OFFICER" },
-    { name = "Spam our GM a pun", code = "WHISPER" },
-    { name = "Spam Waleeria a pun", code = "WHISPER" },
-    { name = "Spam Lulu the Pun-tastic", code = "WHISPER" },
+    { name = "Say", code = "/say " },
+    { name = "Target", code = "/w " },
+    { name = "Yell", code = "/yell " },
+    { name = "Emote", code = "/e " },
+    { name = "Party", code = "/p " },
+    { name = "Instance", code = "/i " },
+    { name = "Raid", code = "/raid " },
+    { name = "Raid Warning", code = "/rw " },
+    { name = "Guild", code = "/g " },
+    { name = "Officer", code = "/o " },
 }
 
 -------------------------------------------------
--- 1. MAIN WINDOW SETUP
+-- MAIN WINDOW SETUP
 -------------------------------------------------
 local jokeWindow = CreateFrame("Frame", "PunPunMainWindow", UIParent, "BackdropTemplate")
 jokeWindow:SetSize(350, 400)
@@ -74,8 +66,7 @@ watermark:SetTexture("Interface\\AddOns\\PunPun\\Big_icon.tga")
 watermark:SetSize(450, 450)
 watermark:SetPoint("CENTER", jokeWindow, "CENTER", -15, 0)
 
--- Make it highly transparent! (0.0 is invisible, 1.0 is solid)
--- 0.15 gives it a subtle, professional watermark look
+-- Make it highly transparent
 watermark:SetAlpha(0.45)
 
 -- Create the standard Blizzard Close Button
@@ -85,8 +76,10 @@ closeButton:SetScript("OnClick", function()
     jokeWindow:Hide()
 end)
 
+jokeWindow:Hide() -- Start hidden until the user clicks the minimap icon
+
 -------------------------------------------------
--- 2. DROPDOWN MENU SETUP
+-- DROPDOWN MENU SETUP
 -------------------------------------------------
 local dropdown = CreateFrame("DropdownButton", "PunPunChannelDropdown", jokeWindow, "WowStyle1DropdownTemplate")
 dropdown:SetPoint("TOPRIGHT", jokeWindow, "TOPRIGHT", -20, -35)
@@ -98,14 +91,14 @@ dropdown:SetupMenu(function(dropdownFrame, rootDescription)
         local channelData = channelsConfig[i]
         rootDescription:CreateButton(channelData.name, function()
             currentChannelName = channelData.name
-            currentChannel = channelData.code
+            currentChannelCode = channelData.code
             dropdownFrame:SetDefaultText(channelData.name)
         end)
     end
 end)
 
 -------------------------------------------------
--- 3. SCROLLBOX & LIST VIEW
+-- SCROLLBOX & LIST VIEW
 -------------------------------------------------
 local scrollBox = CreateFrame("Frame", nil, jokeWindow, "WowScrollBoxList")
 scrollBox:SetPoint("TOPLEFT", jokeWindow, "TOPLEFT", 15, -60)
@@ -117,21 +110,21 @@ scrollBar:SetPoint("BOTTOMLEFT", scrollBox, "BOTTOMRIGHT", 5, 0)
 
 local view = CreateScrollBoxListLinearView()
 
--- A. THE MEASURING TOOL (Hidden string just for calculating dynamic heights)
+-- THE MEASURING TOOL (Hidden string just for calculating dynamic heights)
 local measureString = UIParent:CreateFontString(nil, "BACKGROUND", "GameFontNormal")
 measureString:SetWidth(270) -- Must perfectly match the row text width below!
 measureString:SetWordWrap(true)
 measureString:SetJustifyH("LEFT")
 measureString:Hide()
 
--- B. TELL THE SCROLLBOX THE EXACT HEIGHT OF EVERY ROW AHEAD OF TIME
+-- TELL THE SCROLLBOX THE EXACT HEIGHT OF EVERY ROW AHEAD OF TIME
 view:SetElementExtentCalculator(function(dataIndex, data)
     measureString:SetText(data.joke)
     local textHeight = measureString:GetStringHeight()
     return textHeight + 16 -- Add 16px of vertical padding to the returned height
 end)
 
--- C. THE ROW FACTORY (Using a valid empty XML frame template)
+-- THE ROW FACTORY (Using a valid empty XML frame template)
 view:SetElementInitializer("BackdropTemplate", function(row, data)
 
     if not row.initialized then
@@ -169,44 +162,46 @@ view:SetElementInitializer("BackdropTemplate", function(row, data)
         row.bg:SetColorTexture(0, 0, 0, 0)
     end
 
-    -- D. THE CLICK LOGIC (Using OnMouseUp since it's a Frame, not a Button)
+    -- THE CLICK LOGIC (Using OnMouseUp since it's a Frame, not a Button)
     row:SetScript("OnMouseUp", function()
+        local prefix = currentChannelCode or "/say "
+
         if currentChannelName == "Target" then
             local targetName = UnitName("target")
-            if targetName then
-                SendChatMessage(data.joke, currentChannel, nil, targetName)
-            else
+            if not targetName then
                 print("|cFFFF0000PunPun:|r Please select a target to whisper the joke.")
+                return
             end
-            return
+            prefix = prefix .. targetName .. " "
         end
 
-        if currentChannelName == "Spam our GM a pun" then
-            SendChatMessage(data.joke, "WHISPER", nil, "Marionamay-Silvermoon")
-            SendChatMessage(data.joke, "WHISPER", nil, "Lilithmsky-Silvermoon")
-            SendChatMessage(data.joke, "WHISPER", nil, "Whackabeitch-Daggerspine")
-            return
-        end
-
-        if currentChannelName == "Spam Waleeria a pun" then
-            SendChatMessage(data.joke, "WHISPER", nil, "Wáleeria-ArgentDawn")
-            SendChatMessage(data.joke, "WHISPER", nil, "Néleeria-ArgentDawn")
-            SendChatMessage(data.joke, "WHISPER", nil, "Máleeria-ArgentDawn")
-            SendChatMessage(data.joke, "WHISPER", nil, "Támeeria-ArgentDawn")
-            return
-        end
-        
-        if currentChannelName == "Spam Lulu the Pun-tastic" then
-            SendChatMessage(data.joke, "WHISPER", nil, "Pennsatucky-Silvermoon")
-            SendChatMessage(data.joke, "WHISPER", nil, "Shandie-Silvermoon")
-            SendChatMessage(data.joke, "WHISPER", nil, "Lululime-Silvermoon")
-            SendChatMessage(data.joke, "WHISPER", nil, "Artego-ArgentDawn")
-            return
-        end
-        
-        SendChatMessage(data.joke, currentChannel)
+        -- Single clean line to handle all channels
+        ChatFrame_OpenChat(prefix .. data.joke)
     end)
 end)
+
+local function InsertJokeToChat(jokeText, channel)
+    channel = channel or "SAY" -- Default to SAY, or pass "PARTY", "RAID", "GUILD", etc.
+
+    -- 1. Ensure the default chat EditBox is active and visible
+    local editBox = ChatEdit_ChooseBoxForSend()
+
+    -- 2. Open the box explicitly if it's closed
+    if not editBox:IsShown() then
+        ChatEdit_ActivateUnfocusedEditBox(editBox)
+    end
+
+    -- 3. Set the desired chat channel header (e.g. /say, /p, /g)
+    editBox:SetAttribute("chatType", channel)
+    ChatEdit_UpdateHeader(editBox)
+
+    -- 4. Inject your joke into the input line
+    editBox:SetText(jokeText)
+
+    -- 5. Focus the cursor at the end of the text line so the user can just hit Enter
+    editBox:SetFocus()
+    editBox:SetCursorPosition(#jokeText)
+end
 
 ScrollUtil.InitScrollBoxListWithScrollBar(scrollBox, scrollBar, view)
 
